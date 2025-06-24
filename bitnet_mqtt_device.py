@@ -34,26 +34,20 @@ class DeviceRegistration:
         self.device_config = device_config
         self.logger = logging.getLogger(f"{__name__}.DeviceRegistration")
         
-    def register_device(self) -> Optional[Dict[str, Any]]:
+    def register_device(self) -> Optional[Dict[str, str]]:
         """Register this device with the certificate service and get certificates"""
         try:
-            # Generate device registration payload
+            # Generate device registration payload (server expects camelCase deviceId)
             registration_data = {
-                "device_id": self.device_config["device_id"],
-                "device_type": self.device_config.get("device_type", "raspberry_pi"),
-                "hostname": socket.gethostname(),
-                "mac_address": self._get_mac_address(),
-                "ip_address": self._get_local_ip(),
-                "capabilities": self.device_config.get("capabilities", ["mqtt", "bitnet"]),
-                "location": self.device_config.get("location", "unknown"),
-                "description": self.device_config.get("description", "BitNet MQTT device")
+                "deviceId": self.device_config["device_id"]
             }
             
-            self.logger.info(f"Registering device {registration_data['device_id']}")
+            self.logger.info(f"Registering device {self.device_config['device_id']}")
+            self.logger.debug(f"Registration payload: {json.dumps(registration_data, indent=2)}")
             
             # Send registration request
             response = requests.post(
-                f"{self.service_url}/api/devices/register",
+                f"{self.service_url}/register-device",
                 json=registration_data,
                 timeout=30
             )
@@ -61,7 +55,33 @@ class DeviceRegistration:
             if response.status_code == 200:
                 result = response.json()
                 self.logger.info("Device registration successful")
-                return result
+                self.logger.debug(f"Registration response: {json.dumps(result, indent=2)}")
+                
+                # Store the registration info for MQTT client configuration
+                self.device_config["client_name"] = result["registration"]["clientName"]
+                self.device_config["auth_name"] = result["registration"]["authenticationName"]
+                
+                # Extract certificates from the response
+                if 'certificate' in result:
+                    cert_info = result['certificate']
+                    certificates = {
+                        'client_cert': cert_info.get('certificate', ''),
+                        'client_key': cert_info.get('privateKey', ''),
+                        'public_key': cert_info.get('publicKey', '')
+                    }
+                    
+                    # Also fetch CA certificate separately if available
+                    try:
+                        ca_response = requests.get(f"{self.service_url}/ca-certificate", timeout=10)
+                        if ca_response.status_code == 200:
+                            certificates['ca_cert'] = ca_response.text
+                    except Exception as e:
+                        self.logger.warning(f"Could not fetch CA certificate: {e}")
+                    
+                    return certificates
+                else:
+                    self.logger.error("No certificate data in registration response")
+                    return None
             else:
                 self.logger.error(f"Registration failed: {response.status_code} - {response.text}")
                 return None
@@ -366,18 +386,12 @@ class BitNetMqttDevice:
                 else:
                     self.logger.warning("Existing certificates are invalid, re-registering")
             
-            # Register device and get new certificates
+            # Register device and get certificates
             self.logger.info("Registering device with certificate service")
-            registration_result = self.device_registration.register_device()
+            cert_data = self.device_registration.register_device()
             
-            if not registration_result:
-                self.logger.error("Device registration failed")
-                return False
-            
-            # Get certificates
-            cert_data = self.device_registration.get_certificates(self.device_id)
             if not cert_data:
-                self.logger.error("Failed to retrieve certificates")
+                self.logger.error("Device registration failed")
                 return False
             
             # Save certificates
@@ -580,15 +594,24 @@ class BitNetMqttDevice:
             
         self.logger.info(f"Starting BitNet MQTT Device with ID: {self.device_id}")
         
+        # Get the actual client name and auth name from registration
+        client_name = self.config.get("client_name", f"device-{self.device_id}")
+        auth_name = self.config.get("auth_name", f"{self.device_id}-authnID")
+        
+        self.logger.info(f"Using MQTT client name: {client_name}")
+        self.logger.info(f"Using MQTT auth name: {auth_name}")
+        
         # Setup MQTT client
-        self.mqtt_client = mqtt.Client(client_id=self.device_id)
+        self.mqtt_client = mqtt.Client(client_id=client_name)
         self.mqtt_client.on_connect = self.on_mqtt_connect
         self.mqtt_client.on_message = self.on_mqtt_message
         
-        # Configure MQTT authentication if provided
+        # For Azure Event Grid MQTT with certificate authentication, 
+        # the username should match the authentication name
+        self.mqtt_client.username_pw_set(auth_name, "")
+            
+        # Configure TLS with certificates
         mqtt_config = self.config['mqtt']
-        if 'username' in mqtt_config and 'password' in mqtt_config:
-            self.mqtt_client.username_pw_set(mqtt_config['username'], mqtt_config['password'])
             
         # Configure TLS with certificates
         if mqtt_config.get('use_tls', True):

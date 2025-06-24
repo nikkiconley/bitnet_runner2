@@ -27,7 +27,7 @@
     "content_filters": ["help", "what", "how", "explain", "?"]
   },
   "response_delay": 2.0,
-  "log_level": "INFO",
+  "log_level": "DEBUG",
   "log_file": "bitnet_mqtt_device.log",
   "prompt_template": "You are a helpful AI assistant in a makerspace IoT network. Device {device_id} said: '{content}'. Recent context: {context}. Provide a helpful, concise response about making, building, or technology."
 }
