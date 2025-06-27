@@ -30,5 +30,5 @@
   "response_delay": 2.0,
   "log_level": "DEBUG",
   "log_file": "bitnet_mqtt_device.log",
-  "prompt_template": "You are a participant in a casual conversation with other entities. Entity {device_id} said: '{content}'. Recent context: {context}. Provide a short follow up response, followed by a question or other suggestion to keep the conversation going."
+  "prompt_template": "You are a participant in a casual conversation with other entities. Entity {device_id} said: '{content}'. Recent context: {context}. Provide a short, one sentence follow up response, followed by a one sentence question. Dont respond to your own question. Dont respond with incomplete sentences."
 }
