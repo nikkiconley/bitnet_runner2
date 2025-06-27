@@ -329,6 +329,8 @@ class BitNetMqttDevice:
         self.mqtt_client = None
         self.bitnet = BitNetInference(config.get('bitnet_path', '../BitNet'))
         self.message_history = []
+        self.is_connected = False
+        self.join_message_sent = False
         
         # Certificate management
         self.cert_manager = CertificateManager(config.get('cert_dir', './certs'))
@@ -479,19 +481,23 @@ class BitNetMqttDevice:
         """Callback for MQTT connection"""
         if rc == 0:
             self.logger.info("Connected to MQTT broker")
+            self.is_connected = True
             topic = self.config['mqtt']['topic']
             client.subscribe(topic)
             self.logger.info(f"Subscribed to topic: {topic}")
             
-            # Send initial presence message
-            presence_msg = MqttMessage(
-                device_id=self.device_id,
-                content=f"Device {self.device_id} joined the network with BitNet capabilities",
-                message_type="presence"
-            )
-            self.publish_message(presence_msg)
+            # Send initial presence message only once per service start
+            if not self.join_message_sent:
+                presence_msg = MqttMessage(
+                    device_id=self.device_id,
+                    content=f"Device {self.device_id} joined the network with BitNet capabilities",
+                    message_type="presence"
+                )
+                self.publish_message(presence_msg)
+                self.join_message_sent = True
         else:
             self.logger.error(f"Failed to connect to MQTT broker: {rc}")
+            self.is_connected = False
     
     def on_mqtt_message(self, client, userdata, msg):
         """Callback for received MQTT messages"""
@@ -529,6 +535,18 @@ class BitNetMqttDevice:
             self.logger.error(f"Missing required field {e} in MQTT message: {payload}")
         except Exception as e:
             self.logger.error(f"Error processing MQTT message: {e}. Payload: {msg.payload.decode()}")
+    
+    def on_mqtt_log(self, client, userdata, level, buf):
+        """Callback for MQTT logging"""
+        self.logger.debug(f"MQTT Log: {buf}")
+    
+    def on_mqtt_disconnect(self, client, userdata, rc):
+        """Callback for MQTT disconnection"""
+        self.is_connected = False
+        if rc != 0:
+            self.logger.warning(f"Unexpected MQTT disconnection (code: {rc})")
+        else:
+            self.logger.info("MQTT client disconnected")
     
     def _handle_response(self, message: MqttMessage):
         """Handle generating and sending a response to a message"""
@@ -604,7 +622,10 @@ class BitNetMqttDevice:
         # Setup MQTT client
         self.mqtt_client = mqtt.Client(client_id=client_name)
         self.mqtt_client.on_connect = self.on_mqtt_connect
+        self.mqtt_client.on_disconnect = self.on_mqtt_disconnect
         self.mqtt_client.on_message = self.on_mqtt_message
+        self.mqtt_client.on_log = self.on_mqtt_log  # Enable detailed logging
+        self.mqtt_client.on_disconnect = self.on_mqtt_disconnect  # Handle disconnections
         
         # For Azure Event Grid MQTT with certificate authentication, 
         # the username should match the authentication name
@@ -622,15 +643,16 @@ class BitNetMqttDevice:
             }
             
             try:
-                # Configure TLS context
-                context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-                context.load_verify_locations(str(cert_files['ca']))
+                # Configure TLS context for client certificate authentication
+                context = ssl.create_default_context()
+                context.check_hostname = False  # Azure Event Grid uses certificate-based auth
+                context.verify_mode = ssl.CERT_NONE  # Don't verify server cert with CA
+                
+                # Load only the client certificate and key for authentication
                 context.load_cert_chain(str(cert_files['cert']), str(cert_files['key']))
-                context.check_hostname = False  # For Azure Event Grid compatibility
-                context.verify_mode = ssl.CERT_REQUIRED
                 
                 self.mqtt_client.tls_set_context(context)
-                self.logger.info("TLS configured with device certificates")
+                self.logger.info("TLS configured with client certificate authentication")
                 
             except Exception as e:
                 self.logger.error(f"Failed to configure TLS: {e}")
@@ -672,6 +694,10 @@ class BitNetMqttDevice:
             self.mqtt_client.loop_stop()
             self.mqtt_client.disconnect()
             
+        # Reset connection state flags for potential restart
+        self.is_connected = False
+        self.join_message_sent = False
+        
         self.logger.info("Service stopped")
     
     def send_manual_message(self, content: str, message_type: str = "manual"):
@@ -729,7 +755,8 @@ def create_default_config() -> Dict[str, Any]:
             "threads": 2,
             "ctx_size": 2048,
             "temperature": 0.8,
-            "conversation": False
+            "conversation": False,
+            "model_path": None
         },
         "response_criteria": {
             "default_respond": True,

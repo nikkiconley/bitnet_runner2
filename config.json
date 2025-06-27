@@ -6,7 +6,7 @@
     "keepalive": 60,
     "use_tls": true
   },
-  "cert_service_url": "https://makerspace-cert-service.proudwave-5e4592e9.westus2.azurecontainerapps.io",
+  "cert_service_url": "https://makerspace-cert-service.purplemeadow-71f34003.westus2.azurecontainerapps.io",
   "cert_dir": "./certs",
   "device_type": "raspberry_pi",
   "capabilities": ["mqtt", "bitnet", "ai_inference"],
@@ -18,7 +18,8 @@
     "threads": 2,
     "ctx_size": 2048,
     "temperature": 0.8,
-    "conversation": false
+    "conversation": false,
+    "model_path": "~/BitNet/models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf"
   },
   "response_criteria": {
     "default_respond": true,
