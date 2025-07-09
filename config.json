@@ -6,7 +6,7 @@
     "keepalive": 60,
     "use_tls": true
   },
-  "cert_service_url": "https://makerspace-cert-service.purplemeadow-71f34003.westus2.azurecontainerapps.io",
+  "cert_service_url": "https://makerspace-cert-service.wonderfulbeach-cddbd03d.westus2.azurecontainerapps.io",
   "cert_dir": "./certs",
   "device_type": "raspberry_pi",
   "capabilities": ["mqtt", "bitnet", "ai_inference"],
