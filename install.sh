@@ -29,20 +29,3 @@ pip install -r requirements.txt
 # Create certificates directory
 mkdir -p certs
 
-# Make scripts executable
-chmod +x bitnet_mqtt_device.py
-chmod +x install.sh
-
-echo "Installation completed successfully!"
-echo ""
-echo "Next steps:"
-echo "1. Edit config.json to configure your device settings"
-echo "2. Ensure BitNet is installed and configured at the specified path"
-echo "3. Register your device: python3 bitnet_mqtt_device.py --config config.json register"
-echo "4. Test the service: python3 bitnet_mqtt_device.py --config config.json test 'Hello world'"
-echo "5. Start the service: python3 bitnet_mqtt_device.py --config config.json service"
-echo ""
-echo "For Azure Event Grid MQTT:"
-echo "- The service will automatically register with the certificate service"
-echo "- Certificates will be managed automatically"
-echo "- Default topic: devices/bitnet/messages"
