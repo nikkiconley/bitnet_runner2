@@ -46,12 +46,18 @@ huggingface-cli download microsoft/BitNet-b1.58-2B-4T-gguf --local-dir models/Bi
 python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s
 ```
 
-### Setup bitnet_runner2
-
-
+(Optional) Test inference.
 
 ```shell
-./install.sh
+python run_inference.py -m models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf -p "What is the capital of the USA?" -t 4 -n 100
+```
+
+### Setup bitnet_runner2
+
+```shell
+conda deactivate
+python -m venv .venv
+source .venv/bin/activate
 ```
 
 2. **Configure your device:**
