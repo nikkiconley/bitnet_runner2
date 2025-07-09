@@ -54,87 +54,25 @@ python run_inference.py -m models/BitNet-b1.58-2B-4T/ggml-model-i2_s.gguf -p "Wh
 
 ### Setup bitnet_runner2
 
+Clone the project.
+
 ```shell
+cd ~
+git clone https://github.com/dkirby-ms/bitnet_runner2
 conda deactivate
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-2. **Configure your device:**
-   Edit `config.json` to set your device details:
-   ```json
-   {
-     "device_type": "raspberry_pi",
-     "location": "makerspace_lab_1",
-     "description": "3D printer monitoring device",
-     "bitnet_path": "/path/to/BitNet"
-   }
-   ```
+Install packages.
 
-3. **Register your device:**
-   ```bash
-   python3 bitnet_mqtt_device.py --config config.json register
-   ```
-
-4. **Test BitNet inference:**
-   ```bash
-   python3 bitnet_mqtt_device.py --config config.json test "Hello world"
-   ```
-
-5. **Start the service:**
-   ```bash
-   ./start_service.sh
-   ```
-
-## Configuration
-
-The service uses a JSON configuration file. Key sections:
-
-### MQTT Settings
-
-```json
-{
-  "mqtt": {
-    "broker": "makerspace-eventgrid.westus2-1.ts.eventgrid.azure.net",
-    "port": 8883,
-    "topic": "devices/bitnet/messages",
-    "use_tls": true
-  }
-}
-```
-
-### Device Registration
-
-```json
-{
-  "cert_service_url": "https://makerspace-cert-service.proudwave-5e4592e9.westus2.azurecontainerapps.io",
-  "device_type": "raspberry_pi",
-  "location": "makerspace",
-  "capabilities": ["mqtt", "bitnet", "ai_inference"]
-}
-```
-
-### Response Criteria
-
-```json
-{
-  "response_criteria": {
-    "default_respond": true,
-    "probability": 0.8,
-    "message_types": ["general", "question"],
-    "content_filters": ["help", "what", "how", "explain", "?"]
-  }
-}
+```shell
+pip install -r requirements.txt
 ```
 
 ## Usage
 
 ### Service Commands
-
-**Run as service:**
-```bash
-python3 bitnet_mqtt_device.py --config config.json service
-```
 
 **Send manual message:**
 ```bash
