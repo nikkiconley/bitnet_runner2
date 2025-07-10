@@ -77,7 +77,6 @@ pip install -r requirements.txt
 **Send manual message:**
 ```bash
 python3 bitnet_mqtt_device.py --config config.json send "Hello network!"
-./send_message.sh "How do I use a 3D printer?"
 ```
 
 **Test inference:**
