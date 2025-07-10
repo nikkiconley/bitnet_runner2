@@ -272,8 +272,6 @@ class BitNetInference:
             "-p", prompt,
             "-n", str(kwargs.get('n_predict', 128)),
             "-t", str(kwargs.get('threads', 2)),
-            "-c", str(kwargs.get('ctx_size', 2048)),
-            "-temp", str(kwargs.get('temperature', 0.8))
         ]
         
         model_path = kwargs.get('model_path')
@@ -283,40 +281,15 @@ class BitNetInference:
         if kwargs.get('conversation', False):
             cmd.append("-cnv")
             
-        self.logger.debug(f"Executing inference with command: {' '.join(cmd)}")
+        # Print the command instead of executing it
+        full_cmd = f"cd {self.bitnet_path} && {' '.join(cmd)}"
+        self.logger.info(f"Would execute inference command: {full_cmd}")
+        print(f"BitNet Inference Command: {full_cmd}")
         
-        try:
-            # Change to BitNet directory for execution
-            original_cwd = os.getcwd()
-            os.chdir(self.bitnet_path)
-            
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout
-            )
-            
-            os.chdir(original_cwd)
-            
-            if result.returncode == 0:
-                response = result.stdout.strip()
-                self.logger.info(f"Generated response ({len(response)} chars)")
-                return response
-            else:
-                self.logger.error(f"Inference failed with return code: {result.returncode}")
-                if result.stderr:
-                    self.logger.error(f"Error output: {result.stderr}")
-                return None
-                
-        except subprocess.TimeoutExpired:
-            self.logger.error("Inference timed out after 5 minutes")
-            return None
-        except Exception as e:
-            self.logger.error(f"Unexpected error during inference: {e}")
-            return None
-        finally:
-            os.chdir(original_cwd)
+        # Return a mock response instead of actual inference
+        mock_response = f"[MOCK RESPONSE] This would be the BitNet inference response to: '{prompt[:50]}...'"
+        self.logger.info(f"Returning mock response ({len(mock_response)} chars)")
+        return mock_response
 
 
 class BitNetMqttDevice:
