@@ -281,15 +281,37 @@ class BitNetInference:
         if kwargs.get('conversation', False):
             cmd.append("-cnv")
             
-        # Print the command instead of executing it
+        # Log the command that will be executed
         full_cmd = f"cd {self.bitnet_path} && {' '.join(cmd)}"
-        self.logger.info(f"Would execute inference command: {full_cmd}")
-        print(f"BitNet Inference Command: {full_cmd}")
+        self.logger.info(f"Executing inference command: {full_cmd}")
         
-        # Return a mock response instead of actual inference
-        mock_response = f"[MOCK RESPONSE] This would be the BitNet inference response to: '{prompt[:50]}...'"
-        self.logger.info(f"Returning mock response ({len(mock_response)} chars)")
-        return mock_response
+        try:
+            # Execute the BitNet inference command
+            result = subprocess.run(
+                cmd,
+                cwd=self.bitnet_path,
+                capture_output=True,
+                text=True,
+                timeout=kwargs.get('timeout', 1000)  # Default 1000 second timeout
+            )
+            
+            if result.returncode == 0:
+                # Successful execution
+                response = result.stdout.strip()
+                self.logger.info(f"BitNet inference successful ({len(response)} chars)")
+                return response
+            else:
+                # Command failed
+                self.logger.error(f"BitNet inference failed with return code {result.returncode}")
+                self.logger.error(f"STDERR: {result.stderr}")
+                return None
+                
+        except subprocess.TimeoutExpired:
+            self.logger.error("BitNet inference timed out")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error executing BitNet inference: {e}")
+            return None
 
 
 class BitNetMqttDevice:
@@ -729,7 +751,8 @@ def create_default_config() -> Dict[str, Any]:
             "ctx_size": 2048,
             "temperature": 0.8,
             "conversation": False,
-            "model_path": None
+            "model_path": None,
+            "timeout": 60
         },
         "response_criteria": {
             "default_respond": True,
