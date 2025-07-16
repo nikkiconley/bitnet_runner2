@@ -17,14 +17,29 @@ mkdir -p ~/miniconda3
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O ~/miniconda3/miniconda.sh
 bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
 rm ~/miniconda3/miniconda.sh
-./bin/conda init
+.miniconda/bin/conda init
 ```
 
 Restart your shell to complete the miniconda setup.
 
 ### Setup BitNet
 
-Get the BitNet code.
+#### Requirements
+- python>=3.9
+- cmake>=3.22
+- clang>=18
+    - For Windows users, install [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/). In the installer, toggle on at least the following options(this also automatically installs the required additional tools like CMake):
+        -  Desktop-development with C++
+        -  C++-CMake Tools for Windows
+        -  Git for Windows
+        -  C++-Clang Compiler for Windows
+        -  MS-Build Support for LLVM-Toolset (clang)
+    - For Debian/Ubuntu users, you can download with [Automatic installation script](https://apt.llvm.org/)
+
+        `bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"`
+- conda (highly recommend)
+
+#### Get the BitNet code.
 
 ```shell
 git clone --recursive https://github.com/microsoft/BitNet.git
